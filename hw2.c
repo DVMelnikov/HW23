@@ -32,13 +32,13 @@ int main(void) {
     int row = 1;
     int str = 0;
 
-    while (!feof(text)) 
+    while (!feof(text)) // строки
          if (fgetc(text) == '\n')
              str++;
 
     rewind(text);
 
-    while (fgetc(text) != '\n') 
+    while (fgetc(text) != '\n')  //столбцы
         row++;
 
     printf("row = %d str = %d\n", row, str );
@@ -51,13 +51,13 @@ int main(void) {
 
     rewind(text);
 
-    for (int i = 0; i < row; i++) {
+    for (int i = 0; i < row; i++) { // ввод в масисив
         for (int j = 0; j < str; j++) {
             mat_inc[i][j] = fgetc(text);
         }
     }
 
-    for (int i = 0; i < row; i++) {
+    for (int i = 0; i < row; i++) { // вывод массива
         for (int j = 0; j < str; j++) {
             printf("%c", (char)mat_inc[i][j]);
         }
