@@ -206,6 +206,7 @@ int main(void) {
 }
 
 
+
 void deepInGraph(int* arr, unsigned int length_str, unsigned int length_column, unsigned int cur_str, int* flag) { // функция для продвижение вглубь матрицы
     unsigned int count_column;
     unsigned int count_str;
