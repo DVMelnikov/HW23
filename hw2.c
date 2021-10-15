@@ -4,29 +4,18 @@
 
 #define COLUMN_FINAL_ARR 2
 
+#define NOT_OPEN_FILE (-1)
+#define WRONG_MATRIX (-2)
+#define FAILED_ALLOCATE_MEMORY (-3)
 
-/*Проверки: 
-    Удалось ли открыть файл
-    Правильные ли символы введены в матрицу инцидентности 
-*/
-
-// Определние количества строк и столбцов в файле
-// Создания массива
-// Выделение памяти
-// Чтение с файла
-// Перевод в массив, который нужно отправить в прогу для построения графа
-// Запись конечного массива в файл
-
-/* Коды ошибок:
-    -1 - не удалось открыть файл
- */
+void deepInGraph(int* arr, unsigned int length_str, unsigned int length_column, unsigned int cur_str, int* flag);
 
 int main(void) {
 
     FILE * text = fopen("mat_inc.txt", "r");
 
     if (!text) 
-        return -1;
+        return NOT_OPEN_FILE;
 
     rewind(text);
 
@@ -41,43 +30,64 @@ int main(void) {
 
     while (fgetc(text) != '\n')  //столбцы
         column++;
-/*
-    printf("str = %d column = %d\n", str, column ); */
 
     int **mat_inc;
     mat_inc = (int**)calloc(str, sizeof(int*));
+
+    if (mat_inc == NULL) {
+        printf("FAILED_ALLOCATE_MEMORY");
+        return FAILED_ALLOCATE_MEMORY;
+    }
     for (int i = 0; i < str; i++) {
         mat_inc[i] = (int*)calloc(column, sizeof(int));
+
+        if (mat_inc[i] == NULL) {
+            printf("FAILED_ALLOCATE_MEMORY");
+            return FAILED_ALLOCATE_MEMORY;
+        }
     }
 
     rewind(text);
 
-    for (int i = 0; i < str; i++) { // ввод в масисив
+    for (int i = 0; i < str; i++) { // ввод в масисив с файла
         for (int j = 0; j < column; j++) {
             if (!feof(text))
                 mat_inc[i][j] = fgetc(text);
         }
     }
     fclose(text);
-    
+
+    int count_rib_graph = 0; // кол-во рёбер в графе
+    for (int j = 0; j < column; j++) {
+            if ((mat_inc[0][j] >= 'a') && (mat_inc[0][j] <= 'z')) {
+                count_rib_graph++;
+            }
+    }
+
     int flag = 0;
 
     int **final_arr;
     int str_final_arr = (column / 2) + 1;
     final_arr = (int**)calloc(str_final_arr, sizeof(int*));
+
+    if (final_arr == NULL) {
+            printf("FAILED_ALLOCATE_MEMORY");
+            return FAILED_ALLOCATE_MEMORY;
+    }
+
     for (int i = 0; i < str_final_arr; i++) {
         final_arr[i] = (int*)calloc(COLUMN_FINAL_ARR, sizeof(int));
-    }
-/*
-    for (int i = 1; i < str; i++) {
-        for (int j = 2; j < column; j++) {
-            printf("str = %d column = %d: %c\n", i, j, mat_inc[i][j]);
-            // printf("%c", (char)mat_inc[i][j]);
-        }
-    } */
-    int count_str_final_arr = 0;
 
-    for (int i = 2; i < column; i++) {
+        if (final_arr[i] == NULL) {
+            printf("FAILED_ALLOCATE_MEMORY");
+            return FAILED_ALLOCATE_MEMORY;
+        }
+    }
+
+    int count_str_final_arr = 0;
+    int save = 0;
+
+    for (int i = 2; i < column; i++) { // преобразование полученных данных для ЯП DOT
         if (!isdigit(mat_inc[1][i])) {
             continue;
         }
@@ -87,6 +97,10 @@ int main(void) {
                 flag++;
             }
         }
+        if (flag == 3) {
+            printf("WRONG_MATRIX\n");
+            return WRONG_MATRIX;
+        }
         if (flag == 1) { // петля
             final_arr[count_str_final_arr][flag] = final_arr[count_str_final_arr][flag - 1];
         }
@@ -94,19 +108,37 @@ int main(void) {
         count_str_final_arr++;
     }
 
-    for (int i = 0; i < count_str_final_arr; i++ ) {
-        for (int j = 0; j < COLUMN_FINAL_ARR; j++) {
-            printf("%d ", final_arr[i][j]);
+    for (int i = 1; i < str; i++) {     // Определение отдельных не связных вершин графа
+        for (int j = 2; j < column; j++) {
+            if (!isdigit(mat_inc[i][j]))
+                continue;
+            if (mat_inc[i][j] == '1') {
+                flag = 0;
+                break;
+            } else {
+                flag++;
+            }
         }
-        printf("\n"); 
+        if (flag != 0) {
+            final_arr[count_str_final_arr][0] = i;
+            final_arr[count_str_final_arr++][1] = -1;
+        }
     }
-    
+
     FILE * for_dot = fopen("out.gv", "w+");
 
-    fprintf(for_dot, "graph NEW {\n");
+    if (!for_dot) 
+        return NOT_OPEN_FILE;
+
+    fprintf(for_dot, "graph NEW {\n"); // Заполненние файла
 
     for (int i = 0; i < count_str_final_arr; i++) {
+
+        if (final_arr[i][1] == -1) {
+            fprintf(for_dot, "\t%d\n", final_arr[i][0]);
+        } else {
             fprintf(for_dot, "\t%d -- %d\n", final_arr[i][0], final_arr[i][1]);
+        }
     }
 
     fprintf(for_dot, "}");
@@ -115,6 +147,46 @@ int main(void) {
 
     system("dot -Tpng out.gv -o out.jpg");
     system("wslview out.jpg");
+
+    int * two_dem_in_one_dem = (int *)calloc(count_rib_graph*(str - 1), sizeof(int)); 
+
+    if (two_dem_in_one_dem == NULL) {
+        printf("FAILED_ALLOCATE_MEMORY");
+        return FAILED_ALLOCATE_MEMORY;
+    }
+
+    int counter_tdInod = 0;
+    
+    for (int i = 1; i < str; i++) {  // Представление двумерного массива в одномерном
+        for (int j = 2; j < column; j++) {
+            if ((mat_inc[i][j] == '1') || (mat_inc[i][j] == '0')) {
+                two_dem_in_one_dem[counter_tdInod++] = mat_inc[i][j] - '0';
+            }
+        }
+    }
+
+    int* flag_visit = calloc(str, sizeof(int));
+
+    if (flag_visit == NULL) {
+        printf("FAILED_ALLOCATE_MEMORY");
+        return FAILED_ALLOCATE_MEMORY;
+    }
+    
+    flag_visit[0] = 1;
+    int cur_str = 0;
+
+    deepInGraph(two_dem_in_one_dem, str, count_rib_graph, cur_str, flag_visit); // Определение связанности графа
+
+    int eventyally = 1;
+    for (int i = 0; i < str; i++) {
+        eventyally = eventyally * flag_visit[i];
+    }
+    if (eventyally) {
+        printf("Граф связный\n");
+    } else {
+        printf("Граф не связный\n");
+    }
+
 
     for (int i = 0; i < str; i++) {
         free(mat_inc[i]);
@@ -125,6 +197,33 @@ int main(void) {
         free(final_arr[i]);
     }
     free(final_arr);
+    
+    free(two_dem_in_one_dem);
+
+    free(flag_visit);
 
     return 0;
+}
+
+
+void deepInGraph(int* arr, unsigned int length_str, unsigned int length_column, unsigned int cur_str, int* flag) { // функция для продвижение вглубь матрицы
+    unsigned int count_column;
+    unsigned int count_str;
+    unsigned int tmp;
+
+    for (count_column = 0; count_column < length_column; count_column++) {
+        if (arr[cur_str * length_column + count_column]) {
+            for (count_str = 0; count_str < length_str; count_str++) {
+                if (arr[count_str * length_column + count_column]) {
+                    if (!flag[count_str]) {
+                        flag[count_str] = 1;
+                        tmp = cur_str;
+                        cur_str = count_str;
+                        deepInGraph(arr, length_str, length_column, cur_str, flag);
+                        cur_str = tmp;
+                    }
+                }
+            }
+        }
+    }
 }
