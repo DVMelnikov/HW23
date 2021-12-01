@@ -9,6 +9,9 @@
 #define FAILED_ALLOCATE_MEMORY (-3)
 
 void deepInGraph(int* arr, unsigned int length_str, unsigned int length_column, unsigned int cur_str, int* flag);
+int findStr(FILE *text);
+int findCol(FILE *text);
+void defGraph(int str, int *flag_visit);
 
 int main(void) {
 
@@ -20,17 +23,13 @@ int main(void) {
     rewind(text);
 
     int str = 0;
-    int column = 1;
-
-    while (!feof(text)) // строки
-         if (fgetc(text) == '\n')
-             str++;
-
+    int column = 0;
+    str = findStr(text);
+    
     rewind(text);
-
-    while (fgetc(text) != '\n')  //столбцы
-        column++;
-
+    
+    column = findCol(text);
+    
     int **mat_inc;
     mat_inc = (int**)calloc(str, sizeof(int*));
 
@@ -176,17 +175,7 @@ int main(void) {
     int cur_str = 0;
 
     deepInGraph(two_dem_in_one_dem, str, count_rib_graph, cur_str, flag_visit); // Определение связанности графа
-
-    int eventyally = 1;
-    for (int i = 0; i < str; i++) {
-        eventyally = eventyally * flag_visit[i];
-    }
-    if (eventyally) {
-        printf("Граф связный\n");
-    } else {
-        printf("Граф не связный\n");
-    }
-
+    defGraph(str, flag_visit);
 
     for (int i = 0; i < str; i++) {
         free(mat_inc[i]);
@@ -205,7 +194,32 @@ int main(void) {
     return 0;
 }
 
+int findStr(FILE *text) {
+    int str = 0;
+    while (!feof(text)) // строки
+        if (fgetc(text) == '\n')
+            str++;
+    return str;
+}
 
+int findCol(FILE *text) {
+    int column = 1;
+    while (fgetc(text) != '\n')  //столбцы
+        column++;
+    return column;
+ }
+
+void defGraph(int str, int *flag_visit) {
+        int eventyally = 1;
+        for (int i = 0; i < str; i++) {
+            eventyally = eventyally * flag_visit[i];
+        }
+        if (eventyally) {
+            printf("Граф связный\n");
+        } else {
+            printf("Граф не связный\n");
+        }
+    }
 
 void deepInGraph(int* arr, unsigned int length_str, unsigned int length_column, unsigned int cur_str, int* flag) { // функция для продвижение вглубь матрицы
     unsigned int count_column;
